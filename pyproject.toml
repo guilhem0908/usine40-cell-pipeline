@@ -20,6 +20,7 @@ dev = [
     "pytest>=8",
     "ruff>=0.6",
     "jsonschema>=4.20",
+    "pyyaml>=6",
     "numpy>=1.26",
 ]
 capture = [
@@ -32,6 +33,7 @@ usine40-plc = "usine40.plc:main"
 usine40-gateway = "usine40.gateway:main"
 usine40-collector = "usine40.collector:main"
 usine40-demo = "usine40.demo:main"
+usine40-ctl = "usine40.ctl:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

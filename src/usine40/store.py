@@ -68,7 +68,8 @@ _SCHEMA = (
         highest_seq     BIGINT NOT NULL,
         live_inserted   BIGINT NOT NULL,
         replay_received BIGINT NOT NULL,
-        replay_inserted BIGINT NOT NULL
+        replay_inserted BIGINT NOT NULL,
+        retained        BIGINT NOT NULL
     )
     """,
 )
@@ -108,6 +109,7 @@ class SessionStats:
     live_inserted: int
     replay_received: int
     replay_inserted: int
+    retained: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -252,19 +254,19 @@ class SqlStore:
     def upsert_session(self, stats: SessionStats) -> None:
         columns = [
             "updated_us", "received", "duplicates", "missing", "highest_seq",
-            "live_inserted", "replay_received", "replay_inserted",
+            "live_inserted", "replay_received", "replay_inserted", "retained",
         ]  # fmt: skip
         updates = ", ".join(f"{column} = excluded.{column}" for column in columns)
         self._connection.cursor().execute(
             self._sql(
                 f"INSERT INTO ingest_session (session, {', '.join(columns)})"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 f" ON CONFLICT (session) DO UPDATE SET {updates}"
             ),
             (
                 stats.session, stats.updated_us, stats.received, stats.duplicates, stats.missing,
                 stats.highest_seq, stats.live_inserted, stats.replay_received,
-                stats.replay_inserted,
+                stats.replay_inserted, stats.retained,
             ),
         )  # fmt: skip
         self._connection.commit()

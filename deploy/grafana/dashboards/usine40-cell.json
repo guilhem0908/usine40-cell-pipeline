@@ -1,0 +1,738 @@
+{
+  "uid": "usine40-cell",
+  "title": "Usine 4.0 cell - OEE",
+  "tags": [
+    "usine40",
+    "oee",
+    "opc-ua",
+    "mqtt"
+  ],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "graphTooltip": 1,
+  "timezone": "browser",
+  "time": {
+    "from": "now-10m",
+    "to": "now"
+  },
+  "refresh": "5s",
+  "timepicker": {
+    "refresh_intervals": [
+      "2s",
+      "5s",
+      "10s",
+      "30s",
+      "1m"
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [],
+  "templating": {
+    "list": [
+      {
+        "name": "station",
+        "label": "Station",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "usine40-postgres"
+        },
+        "query": "SELECT station FROM (SELECT DISTINCT station FROM oee_window) s ORDER BY (station <> 'machining'), station",
+        "definition": "Stations that have OEE windows, bottleneck first",
+        "refresh": 2,
+        "sort": 0,
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "selected": true,
+          "text": "machining",
+          "value": "machining"
+        },
+        "options": [],
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "gauge",
+      "title": "OEE of $station over the selected range",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "usine40-postgres"
+      },
+      "description": "Ratios recomputed from summed durations and counts of the 30 s windows in range: A = run / planned, P = ideal cycle x parts / run, Q = good / parts, OEE = A x P x Q.",
+      "gridPos": {
+        "h": 6,
+        "w": 11,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#d03b3b",
+                "value": null
+              },
+              {
+                "color": "#fab219",
+                "value": 60
+              },
+              {
+                "color": "#0ca30c",
+                "value": 85
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "orientation": "auto",
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "usine40-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  100.0 * sum(good * ideal_cycle_s) / NULLIF(sum(running_us + blocked_us + starved_us + fault_us) / 1e6, 0) AS \"OEE\",\n  100.0 * sum(running_us) / NULLIF(sum(running_us + blocked_us + starved_us + fault_us), 0) AS \"Availability\",\n  100.0 * sum(total * ideal_cycle_s) / NULLIF(sum(running_us) / 1e6, 0) AS \"Performance\",\n  100.0 * sum(good) / NULLIF(sum(total), 0) AS \"Quality\"\nFROM oee_window\nWHERE station = '$station'\n  AND end_us > $__unixEpochFrom()::bigint * 1000000\n  AND start_us < $__unixEpochTo()::bigint * 1000000",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Parts of $station and data age",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "usine40-postgres"
+      },
+      "description": "Data age is the time since the last PLC heartbeat stored. OEE is never computed past that heartbeat.",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 11,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Data age"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#0ca30c",
+                      "value": null
+                    },
+                    {
+                      "color": "#d03b3b",
+                      "value": 5
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "vertical",
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "usine40-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT sum(good) AS \"Good parts\", sum(total) - sum(good) AS \"Scrap\"\nFROM oee_window\nWHERE station = '$station'\n  AND end_us > $__unixEpochFrom()::bigint * 1000000\n  AND start_us < $__unixEpochTo()::bigint * 1000000",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "usine40-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT extract(epoch FROM now()) - max(source_us) / 1e6 AS \"Data age\"\nFROM sample\nWHERE station = 'cell' AND signal = 'heartbeat'",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "alertlist",
+      "title": "Alerts",
+      "gridPos": {
+        "h": 6,
+        "w": 7,
+        "x": 17,
+        "y": 0
+      },
+      "options": {
+        "alertInstanceLabelFilter": "",
+        "alertName": "",
+        "dashboardAlerts": false,
+        "groupBy": [],
+        "groupMode": "default",
+        "maxItems": 20,
+        "sortOrder": 3,
+        "viewMode": "list",
+        "stateFilter": {
+          "error": true,
+          "firing": true,
+          "noData": true,
+          "normal": true,
+          "pending": true
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "state-timeline",
+      "title": "Station states",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "usine40-postgres"
+      },
+      "description": "State changes with their PLC source timestamps. A station turns to NO DATA 5 s after the last heartbeat stored, instead of showing its last known state as current.",
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 90,
+            "lineWidth": 0,
+            "spanNulls": true,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#6e6e68"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "-1": {
+                  "text": "NO DATA",
+                  "color": "#6e6e68",
+                  "index": 0
+                },
+                "0": {
+                  "text": "IDLE",
+                  "color": "#3987e5",
+                  "index": 1
+                },
+                "1": {
+                  "text": "RUNNING",
+                  "color": "#0ca30c",
+                  "index": 2
+                },
+                "2": {
+                  "text": "BLOCKED",
+                  "color": "#fab219",
+                  "index": 3
+                },
+                "3": {
+                  "text": "STARVED",
+                  "color": "#ec835a",
+                  "index": 4
+                },
+                "4": {
+                  "text": "FAULT",
+                  "color": "#d03b3b",
+                  "index": 5
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "alignValue": "left",
+        "mergeValues": true,
+        "rowHeight": 0.85,
+        "showValue": "auto",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "renameByName": {},
+            "indexByName": {
+              "Time": 0,
+              "time": 0,
+              "infeed": 1,
+              "machining": 2,
+              "inspection": 3
+            }
+          }
+        }
+      ],
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "usine40-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH bounds AS (\n  SELECT $__unixEpochFrom()::bigint * 1000000 AS from_us,\n         LEAST($__unixEpochTo()::bigint * 1000000,\n               (extract(epoch FROM now()) * 1000000)::bigint) AS to_us\n),\nfresh AS (\n  -- Data is trusted up to 5 s after the last PLC heartbeat stored.\n  SELECT LEAST(b.to_us, max(s.source_us) + 5000000) AS until_us\n  FROM bounds b\n  LEFT JOIN sample s ON s.station = 'cell' AND s.signal = 'heartbeat'\n  GROUP BY b.to_us\n),\nstations AS (SELECT DISTINCT station FROM oee_window),\ncarried AS (\n  SELECT st.station, b.from_us AS source_us, last.value\n  FROM stations st\n  CROSS JOIN bounds b\n  CROSS JOIN LATERAL (\n    SELECT value FROM sample s\n    WHERE s.station = st.station AND s.signal = 'state' AND s.source_us < b.from_us\n    ORDER BY s.source_us DESC LIMIT 1\n  ) last\n),\nchanges AS (\n  SELECT s.station, s.source_us, s.value\n  FROM stations st\n  CROSS JOIN bounds b\n  JOIN sample s ON s.station = st.station AND s.signal = 'state'\n   AND s.source_us >= b.from_us AND s.source_us < b.to_us\n),\nheld AS (\n  -- The last known state is drawn up to the freshness limit, not beyond.\n  SELECT st.station, f.until_us AS source_us, last.value\n  FROM stations st\n  CROSS JOIN fresh f\n  CROSS JOIN LATERAL (\n    SELECT value FROM sample s\n    WHERE s.station = st.station AND s.signal = 'state' AND s.source_us < f.until_us\n    ORDER BY s.source_us DESC LIMIT 1\n  ) last\n),\nstale AS (\n  SELECT st.station, edge.source_us, -1::double precision AS value\n  FROM stations st\n  CROSS JOIN bounds b\n  CROSS JOIN fresh f\n  CROSS JOIN LATERAL (VALUES (f.until_us + 1), (b.to_us)) AS edge(source_us)\n  WHERE f.until_us < b.to_us\n)\nSELECT to_timestamp(source_us / 1e6) AS time, station AS metric, value\nFROM (\n  SELECT * FROM carried UNION ALL SELECT * FROM changes\n  UNION ALL SELECT * FROM held UNION ALL SELECT * FROM stale\n) merged\nORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "OEE of $station per 30 s window",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "usine40-postgres"
+      },
+      "description": "One point per complete window, placed at the window end. Performance can exceed 100 % in a single window when a part started in the previous one.",
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 0,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 110,
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisBorderShow": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "OEE"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3987e5"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Availability"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#d95926"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Performance"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#199e70"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Quality"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#c98500"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "usine40-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT to_timestamp(end_us / 1e6) AS time,\n  100.0 * good * ideal_cycle_s / NULLIF((running_us + blocked_us + starved_us + fault_us) / 1e6, 0) AS \"OEE\",\n  100.0 * running_us / NULLIF((running_us + blocked_us + starved_us + fault_us), 0) AS \"Availability\",\n  100.0 * total * ideal_cycle_s / NULLIF(running_us / 1e6, 0) AS \"Performance\",\n  100.0 * good / NULLIF(total, 0) AS \"Quality\"\nFROM oee_window\nWHERE station = '$station' AND complete\n  AND end_us > $__unixEpochFrom()::bigint * 1000000\n  AND start_us < $__unixEpochTo()::bigint * 1000000\nORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "barchart",
+      "title": "Share of time in each state",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "usine40-postgres"
+      },
+      "description": "Everything except RUNNING and IDLE is an availability loss of the station that suffers it.",
+      "gridPos": {
+        "h": 8,
+        "w": 7,
+        "x": 10,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 105,
+          "decimals": 0,
+          "custom": {
+            "fillOpacity": 90,
+            "lineWidth": 1,
+            "axisBorderShow": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "RUNNING"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#0ca30c"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "BLOCKED"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#fab219"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "STARVED"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#ec835a"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "FAULT"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#d03b3b"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "IDLE"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3987e5"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "horizontal",
+        "stacking": "normal",
+        "xField": "station",
+        "showValue": "never",
+        "barWidth": 0.6,
+        "groupWidth": 0.7,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "usine40-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT station,\n  100.0 * sum(running_us) / NULLIF(sum(idle_us + running_us + blocked_us + starved_us + fault_us), 0) AS \"RUNNING\",\n  100.0 * sum(blocked_us) / NULLIF(sum(idle_us + running_us + blocked_us + starved_us + fault_us), 0) AS \"BLOCKED\",\n  100.0 * sum(starved_us) / NULLIF(sum(idle_us + running_us + blocked_us + starved_us + fault_us), 0) AS \"STARVED\",\n  100.0 * sum(fault_us) / NULLIF(sum(idle_us + running_us + blocked_us + starved_us + fault_us), 0) AS \"FAULT\",\n  100.0 * sum(idle_us) / NULLIF(sum(idle_us + running_us + blocked_us + starved_us + fault_us), 0) AS \"IDLE\"\nFROM oee_window\nWHERE end_us > $__unixEpochFrom()::bigint * 1000000\n  AND start_us < $__unixEpochTo()::bigint * 1000000\nGROUP BY station\nORDER BY station",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Latency, PLC timestamp to database row",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "usine40-postgres"
+      },
+      "description": "Database clock at insert minus PLC source timestamp, live samples only, per 10 s bucket.",
+      "gridPos": {
+        "h": 8,
+        "w": 7,
+        "x": 17,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisBorderShow": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p50"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#3987e5"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "p95"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#d95926"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "usine40-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT to_timestamp((source_us / 10000000) * 10) AS time,\n  percentile_cont(0.5) WITHIN GROUP (ORDER BY (db_us - source_us) / 1000.0) AS \"p50\",\n  percentile_cont(0.95) WITHIN GROUP (ORDER BY (db_us - source_us) / 1000.0) AS \"p95\"\nFROM sample\nWHERE NOT replay\n  AND source_us >= $__unixEpochFrom()::bigint * 1000000\n  AND source_us < $__unixEpochTo()::bigint * 1000000\nGROUP BY 1\nORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

@@ -77,7 +77,7 @@ class MqttBus:
 
     def subscribe(self, topic_filter: str, qos: int, callback: MessageCallback) -> None:
         def deliver(_client: mqtt.Client, _userdata: object, message: mqtt.MQTTMessage) -> None:
-            callback(message.topic, message.payload)
+            callback(message.topic, message.payload, bool(message.retain))
 
         self._client.message_callback_add(topic_filter, deliver)
         with self._lock:

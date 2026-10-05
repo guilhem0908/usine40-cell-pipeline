@@ -6,8 +6,11 @@ each data change with the PLC source timestamp, a session identifier and a
 sequence number. It holds no state worth keeping: after a restart it re-reads
 the last ``backfill_s`` seconds from the server's OPC UA history and publishes
 them flagged as replays, which the idempotent store merges with what it
-already has. A sample without a source timestamp or with a non-numeric value
-is counted and skipped rather than forwarded with a made-up time.
+already has. Telemetry is published retained, so a consumer that subscribes
+late still receives the current value of every signal, including the ones
+that never change such as the ideal cycle time. A sample without a source
+timestamp or with a non-numeric value is counted and skipped rather than
+forwarded with a made-up time.
 """
 
 from __future__ import annotations
@@ -65,6 +68,7 @@ class Gateway:
         self._clock = clock
         self._client: Client | None = None
         self._signals: dict[ua.NodeId, tuple[str, str]] = {}
+        self._primed: set[ua.NodeId] = set()
         self._seq = 0
         self.session = session or new_session_id()
         self.forwarded = 0
@@ -80,6 +84,7 @@ class Gateway:
         self._client = Client(self._url)
         await self._client.connect()
         self._signals = await self._discover(self._client)
+        self._primed = set()
         subscription = await self._client.create_subscription(self._publishing_interval_ms, self)
         nodes = [self._client.get_node(node_id) for node_id in self._signals]
         await subscription.subscribe_data_change(
@@ -115,10 +120,20 @@ class Gateway:
                 await asyncio.sleep(RECONNECT_DELAY_S)
 
     def datachange_notification(self, node, _value, data) -> None:
-        """Subscription callback: forward one live data change."""
+        """Subscription callback: forward one data change.
+
+        The first notification of a variable is its current value, sent by the
+        server when the subscription starts. It can be arbitrarily old, so it
+        is flagged as a replay like the history, not as a live change.
+        """
         station, signal = self._signals[node.nodeid]
-        if self._publish(station, signal, data.monitored_item.Value, replay=False):
-            self.forwarded += 1
+        initial = node.nodeid not in self._primed
+        self._primed.add(node.nodeid)
+        if self._publish(station, signal, data.monitored_item.Value, replay=initial):
+            if initial:
+                self.replayed += 1
+            else:
+                self.forwarded += 1
 
     async def _discover(self, client: Client) -> dict[ua.NodeId, tuple[str, str]]:
         namespace = await client.get_namespace_index(NAMESPACE_URI)
@@ -167,7 +182,8 @@ class Gateway:
             value=float(value),
             replay=replay,
         )
-        self._bus.publish(data_topic(self._path, station, signal), message.to_json(), self._qos)
+        topic = data_topic(self._path, station, signal)
+        self._bus.publish(topic, message.to_json(), self._qos, retain=True)
         return True
 
 

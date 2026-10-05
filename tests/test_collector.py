@@ -38,6 +38,7 @@ class Feed:
         self.seq = 0
 
     def send(self, station: str, signal: str, ts_s: float, value: float, **overrides) -> None:
+        """Publish one sample; ``seq``, ``replay`` and ``retain`` can be overridden."""
         self.seq += 1
         message = Telemetry(
             session=self._session,
@@ -47,7 +48,9 @@ class Feed:
             value=float(value),
             replay=overrides.get("replay", False),
         )
-        self._bus.publish(data_topic(PATH, station, signal), message.to_json(), qos=1)
+        retain = overrides.get("retain", False)
+        topic = data_topic(PATH, station, signal)
+        self._bus.publish(topic, message.to_json(), qos=1, retain=retain)
 
     def heartbeat(self, ts_s: float) -> None:
         self.send(CELL_STATION, SIGNAL_HEARTBEAT, ts_s, ts_s)
@@ -104,8 +107,8 @@ def test_oee_window_upsert_replaces_the_previous_version():
 
 def test_session_statistics_are_upserted():
     store = open_sqlite()
-    store.upsert_session(SessionStats("a", 1, 10, 0, 0, 10, 10, 0, 0))
-    store.upsert_session(SessionStats("a", 2, 25, 3, 1, 23, 21, 0, 0))
+    store.upsert_session(SessionStats("a", 1, 10, 0, 0, 10, 10, 0, 0, 0))
+    store.upsert_session(SessionStats("a", 2, 25, 3, 1, 23, 21, 0, 0, 4))
     rows = store.query("SELECT session, received, duplicates, missing FROM ingest_session")
     assert rows == [("a", 25, 3, 1)]
 
@@ -156,6 +159,32 @@ def test_replaying_samples_that_are_already_stored_adds_nothing(pipeline):
     assert stats["after-restart"].replay_received == 5
     assert stats["after-restart"].replay_inserted == 2
     assert len(store.sample_keys()) == 7
+
+
+def test_late_collector_learns_current_values_from_retained_messages():
+    broker = InMemoryBroker()
+    feed = Feed(broker)
+    feed.send("machining", SIGNAL_IDEAL, 0.0, 2.0, retain=True)
+    feed.send("machining", SIGNAL_STATE, 1.0, State.RUNNING, retain=True)
+    feed.send("machining", SIGNAL_STATE, 5.0, State.FAULT, retain=True)
+    store = open_sqlite()
+    collector = Collector(broker.client(), store, PATH)
+    collector.start()
+    assert collector.flush() == 2
+    assert store.series("machining", SIGNAL_IDEAL, 0, 60 * S) == [(0, 2.0)]
+    assert store.series("machining", SIGNAL_STATE, 0, 60 * S) == [(5 * S, 4.0)]
+
+
+def test_retained_copies_are_not_counted_as_wire_duplicates(pipeline):
+    feed, collector, store, _ = pipeline
+    feed.send("machining", SIGNAL_STATE, 1.0, State.RUNNING, retain=True)
+    feed.send("machining", SIGNAL_TOTAL, 2.0, 1, retain=True)
+    collector.flush()
+    collector.start()  # a reconnection subscribes again and gets the stored copies
+    assert collector.flush() == 0
+    (stats,) = collector.session_stats()
+    assert (stats.received, stats.duplicates, stats.retained) == (2, 0, 2)
+    assert len(store.sample_keys()) == 2
 
 
 def _produce(feed: Feed, until_s: int) -> None:

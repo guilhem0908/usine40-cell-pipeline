@@ -12,8 +12,9 @@ what is needed to audit the transport::
   are duplicates.
 * ``source_us`` is the PLC source timestamp and ``gateway_us`` the time the
   gateway published, both in microseconds since the Unix epoch.
-* ``replay`` is true for samples re-read from the OPC UA history after a
-  gateway start.
+* ``replay`` is true for samples that are not live changes: values re-read
+  from the OPC UA history after a gateway start, and the current value the
+  server sends for each variable when a subscription begins.
 
 The same contract is published as JSON Schema in ``schemas/telemetry.schema.json``.
 """

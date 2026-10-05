@@ -13,6 +13,6 @@
     "source_us": { "type": "integer", "minimum": 0, "description": "PLC source timestamp, microseconds since the Unix epoch." },
     "gateway_us": { "type": "integer", "minimum": 0, "description": "Gateway publish time, microseconds since the Unix epoch." },
     "value": { "type": "number", "description": "Signal value. States and counters are sent as numbers." },
-    "replay": { "type": "boolean", "description": "True when the sample was re-read from the OPC UA history." }
+    "replay": { "type": "boolean", "description": "True when the sample is not a live change: re-read from the OPC UA history, or the initial value sent when a subscription starts." }
   }
 }

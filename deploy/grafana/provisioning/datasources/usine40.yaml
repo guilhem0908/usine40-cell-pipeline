@@ -1,0 +1,18 @@
+apiVersion: 1
+
+datasources:
+  - name: usine40-postgres
+    uid: usine40-postgres
+    type: grafana-postgresql-datasource
+    access: proxy
+    url: db:5432
+    user: grafana
+    isDefault: true
+    editable: false
+    jsonData:
+      database: usine40
+      sslmode: disable
+      postgresVersion: 1700
+      timescaledb: false
+    secureJsonData:
+      password: $GRAFANA_DB_PASSWORD

@@ -1,0 +1,114 @@
+apiVersion: 1
+
+# Two rules, evaluated every 10 s (the Grafana scheduler tick) and firing on the
+# first evaluation that sees the condition (for: 0s).
+groups:
+  - orgId: 1
+    name: usine40-cell
+    folder: Usine 4.0
+    interval: 10s
+    rules:
+      - uid: usine40-station-fault
+        title: Station in fault
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: usine40-postgres
+            model:
+              refId: A
+              format: table
+              rawQuery: true
+              editorMode: code
+              rawSql: |
+                SELECT st.station, (last.value = 4)::int AS in_fault
+                FROM (SELECT DISTINCT station FROM oee_window) st
+                CROSS JOIN LATERAL (
+                  SELECT value FROM sample s
+                  WHERE s.station = st.station AND s.signal = 'state'
+                  ORDER BY s.source_us DESC LIMIT 1
+                ) last
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              datasource:
+                type: __expr__
+                uid: __expr__
+              conditions:
+                - type: query
+                  evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  query:
+                    params: [C]
+                  reducer:
+                    type: last
+                    params: []
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.station }} is in FAULT"
+        isPaused: false
+
+      - uid: usine40-data-stale
+        title: Pipeline data stale
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: usine40-postgres
+            model:
+              refId: A
+              format: table
+              rawQuery: true
+              editorMode: code
+              rawSql: |
+                SELECT extract(epoch FROM now()) - max(source_us) / 1e6 AS age_s
+                FROM sample
+                WHERE station = 'cell' AND signal = 'heartbeat'
+                HAVING max(source_us) IS NOT NULL
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              datasource:
+                type: __expr__
+                uid: __expr__
+              conditions:
+                - type: query
+                  evaluator:
+                    type: gt
+                    params: [10]
+                  operator:
+                    type: and
+                  query:
+                    params: [C]
+                  reducer:
+                    type: last
+                    params: []
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        labels:
+          severity: warning
+        annotations:
+          summary: "No PLC heartbeat stored for more than 10 s"
+        isPaused: false

@@ -160,7 +160,7 @@ def test_redelivered_qos1_messages_are_counted_but_not_stored_twice():
 
     missing, stats, comparison = asyncio.run(scenario())
     assert stats.duplicates == 8
-    assert stats.live_inserted == stats.received - stats.duplicates
+    assert stats.live_inserted + stats.replay_received == stats.received - stats.duplicates
     assert missing == 0
     assert _worst_error(comparison) < 1e-9
 

@@ -5,11 +5,12 @@ semantics. ``MqttBus`` (:mod:`usine40.mqtt_bus`) talks to a real broker;
 ``InMemoryBroker`` stands in for it in tests and in the Docker-free demo.
 
 The substitute models the behaviours the pipeline depends on and nothing more:
-topic filters with ``+`` and ``#``, retained messages, and what happens to a
-publisher during a broker outage (QoS 0 messages are dropped, QoS 1 messages
-are queued by the client and sent in order when the broker returns, the last
-unacknowledged ones possibly twice). Every number reported for a real broker
-restart comes from Mosquitto in the compose stack, not from this class.
+topic filters with ``+`` and ``#``, retained messages (the last one per topic is
+handed to late subscribers), and what happens to a publisher during a broker
+outage (QoS 0 messages are dropped, QoS 1 messages are queued by the client and
+sent in order when the broker returns, the last unacknowledged ones possibly
+twice). Every number reported for a real broker restart comes from Mosquitto in
+the compose stack, not from this class.
 """
 
 from __future__ import annotations
@@ -18,7 +19,9 @@ from collections import deque
 from collections.abc import Callable
 from typing import Protocol
 
-MessageCallback = Callable[[str, bytes], None]
+MessageCallback = Callable[[str, bytes, bool], None]
+"""Called with ``(topic, payload, retained)``; ``retained`` is true for a message
+the broker stored and hands over at subscription time rather than live."""
 
 QOS_AT_MOST_ONCE = 0
 QOS_AT_LEAST_ONCE = 1
@@ -85,13 +88,13 @@ class InMemoryBroker:
             self._retained[topic] = payload
         for topic_filter, callback in list(self._subscriptions):
             if topic_matches(topic_filter, topic):
-                callback(topic, payload)
+                callback(topic, payload, False)
 
     def add_subscription(self, topic_filter: str, callback: MessageCallback) -> None:
         self._subscriptions.append((topic_filter, callback))
         for topic, payload in list(self._retained.items()):
             if topic_matches(topic_filter, topic):
-                callback(topic, payload)
+                callback(topic, payload, True)
 
 
 class InMemoryBus:

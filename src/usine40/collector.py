@@ -54,6 +54,7 @@ class _SessionCounters:
     live_inserted: int = 0
     replay_received: int = 0
     replay_inserted: int = 0
+    retained: int = 0
 
 
 class Collector:
@@ -75,7 +76,7 @@ class Collector:
         self._window_us = seconds_to_us(window_s)
         self._recompute_us = seconds_to_us(recompute_s)
         self._clock = clock
-        self._inbox: queue.SimpleQueue[tuple[str, bytes, int]] = queue.SimpleQueue()
+        self._inbox: queue.SimpleQueue[tuple[str, bytes, bool, int]] = queue.SimpleQueue()
         self._sessions: dict[str, _SessionCounters] = {}
         self._pending: dict[tuple[str, bool], list[SampleRow]] = {}
         self._dirty: set[str] = set()
@@ -95,14 +96,18 @@ class Collector:
         """
         while True:
             try:
-                topic, payload, received_us = self._inbox.get_nowait()
+                topic, payload, retained, received_us = self._inbox.get_nowait()
             except queue.Empty:
                 break
             row = self._decode(topic, payload, received_us)
             if row is None:
                 continue
             counters = self._sessions.setdefault(row.session, _SessionCounters())
-            if not counters.tracker.observe(row.seq):
+            if retained:
+                # Stored copy handed over at subscription time: not part of the
+                # live stream, so it says nothing about loss or duplication.
+                counters.retained += 1
+            elif not counters.tracker.observe(row.seq):
                 self._dirty.add(row.session)
                 continue
             self._pending.setdefault((row.session, row.replay), []).append(row)
@@ -156,8 +161,17 @@ class Collector:
         self._store.upsert_oee(windows)
         return len(windows)
 
-    def run(self, stop: threading.Event, heartbeat: Heartbeat | None = None) -> None:
-        """Flush and aggregate until ``stop`` is set, surviving store outages."""
+    def run(
+        self,
+        stop: threading.Event,
+        heartbeat: Heartbeat | None = None,
+        is_connected: Callable[[], bool] = lambda: True,
+    ) -> None:
+        """Flush and aggregate until ``stop`` is set, surviving store outages.
+
+        The heartbeat only beats while the store answers and ``is_connected``
+        holds, so the container is healthy exactly when data can flow.
+        """
         next_aggregate = time.monotonic()
         while not stop.is_set():
             try:
@@ -165,7 +179,7 @@ class Collector:
                 if time.monotonic() >= next_aggregate:
                     self.aggregate()
                     next_aggregate = time.monotonic() + AGGREGATE_INTERVAL_S
-                if heartbeat is not None:
+                if heartbeat is not None and is_connected():
                     heartbeat.beat()
             except Exception:
                 _log.exception("Store error; reconnecting in %.0f s", STORE_RETRY_DELAY_S)
@@ -175,8 +189,8 @@ class Collector:
                 continue
             stop.wait(FLUSH_INTERVAL_S)
 
-    def _on_message(self, topic: str, payload: bytes) -> None:
-        self._inbox.put((topic, payload, self._clock()))
+    def _on_message(self, topic: str, payload: bytes, retained: bool) -> None:
+        self._inbox.put((topic, payload, retained, self._clock()))
 
     def _decode(self, topic: str, payload: bytes, received_us: int) -> SampleRow | None:
         try:
@@ -210,6 +224,7 @@ class Collector:
             live_inserted=counters.live_inserted,
             replay_received=counters.replay_received,
             replay_inserted=counters.replay_inserted,
+            retained=counters.retained,
         )
 
 
@@ -240,7 +255,7 @@ def main() -> None:
     bus.start()
     _log.info("Collector started, window %.0f s", settings.window_s)
     try:
-        collector.run(stop, Heartbeat(settings.health_file))
+        collector.run(stop, Heartbeat(settings.health_file), lambda: bus.connected)
     finally:
         bus.close()
         store.close()

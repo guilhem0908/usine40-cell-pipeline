@@ -198,15 +198,17 @@ def test_broker_substitute_delivers_retained_message_to_late_subscriber():
     broker = InMemoryBroker()
     broker.client().publish("a/status", b"online", qos=1, retain=True)
     broker.client().publish("a/data", b"1", qos=1)
-    received: list[tuple[str, bytes]] = []
-    broker.client().subscribe("a/#", 1, lambda topic, payload: received.append((topic, payload)))
-    assert received == [("a/status", b"online")]
+    received: list[tuple[str, bytes, bool]] = []
+    broker.client().subscribe("a/#", 1, lambda *message: received.append(message))
+    assert received == [("a/status", b"online", True)]
+    broker.client().publish("a/data", b"2", qos=1)
+    assert received[-1] == ("a/data", b"2", False)
 
 
 def test_broker_substitute_drops_qos0_and_queues_qos1_during_an_outage():
     broker = InMemoryBroker()
     received: list[bytes] = []
-    broker.client().subscribe("t", 1, lambda _topic, payload: received.append(payload))
+    broker.client().subscribe("t", 1, lambda _topic, payload, _retained: received.append(payload))
     publisher = broker.client()
     publisher.publish("t", b"before", qos=1)
     broker.stop()
@@ -222,7 +224,7 @@ def test_broker_substitute_drops_qos0_and_queues_qos1_during_an_outage():
 def test_broker_substitute_redelivers_unacknowledged_qos1_messages():
     broker = InMemoryBroker()
     received: list[bytes] = []
-    broker.client().subscribe("t", 1, lambda _topic, payload: received.append(payload))
+    broker.client().subscribe("t", 1, lambda _topic, payload, _retained: received.append(payload))
     publisher = broker.client()
     for index in range(5):
         publisher.publish("t", str(index).encode(), qos=1)

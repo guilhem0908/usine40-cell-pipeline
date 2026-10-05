@@ -1,0 +1,121 @@
+# Simulated PLC -> OPC UA -> gateway -> MQTT -> collector -> PostgreSQL -> Grafana.
+#
+#   docker compose up -d --build --wait      then open http://localhost:3300
+#
+# Every port is published on 127.0.0.1 only. The passwords below are defaults
+# for a local demonstration; override them in a .env file (see .env.example).
+name: usine40cell
+
+x-app: &app
+  build: .
+  image: usine40cell/app:0.1.0
+  restart: unless-stopped
+  init: true
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0.22
+    restart: unless-stopped
+    volumes:
+      - ./deploy/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+    ports:
+      - "127.0.0.1:18830:1883"
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "$$SYS/broker/uptime", "-C", "1", "-W", "3"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: usine40
+      POSTGRES_USER: usine40
+      POSTGRES_PASSWORD: ${USINE40_DB_PASSWORD:-usine40-local}
+      GRAFANA_DB_PASSWORD: ${USINE40_GRAFANA_DB_PASSWORD:-grafana-local}
+    volumes:
+      - ./deploy/postgres/init:/docker-entrypoint-initdb.d:ro
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:15432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U usine40 -d usine40"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  plc:
+    <<: *app
+    command: ["usine40-plc"]
+    environment:
+      USINE40_SEED: ${USINE40_SEED:-1}
+      USINE40_FAULT_SCHEDULE: ${USINE40_FAULT_SCHEDULE:-[]}
+      USINE40_PLANNED_STOPS: ${USINE40_PLANNED_STOPS:-[]}
+    ports:
+      - "127.0.0.1:14840:4840"
+
+  gateway:
+    <<: *app
+    command: ["usine40-gateway"]
+    environment:
+      USINE40_OPCUA_URL: opc.tcp://plc:4840/usine40
+      USINE40_MQTT_HOST: mosquitto
+      USINE40_MQTT_QOS: ${USINE40_MQTT_QOS:-1}
+      USINE40_BACKFILL_S: ${USINE40_BACKFILL_S:-120}
+    # The collector must hold its subscription before the first publish,
+    # otherwise the broker has nobody to keep the start-up samples for.
+    depends_on:
+      plc:
+        condition: service_healthy
+      collector:
+        condition: service_healthy
+
+  collector:
+    <<: *app
+    command: ["usine40-collector"]
+    environment:
+      USINE40_DATABASE_URL: postgresql://usine40:${USINE40_DB_PASSWORD:-usine40-local}@db:5432/usine40
+      USINE40_MQTT_HOST: mosquitto
+      USINE40_MQTT_QOS: ${USINE40_MQTT_QOS:-1}
+      USINE40_BACKFILL_S: ${USINE40_BACKFILL_S:-120}
+    depends_on:
+      db:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:11.4.8
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${USINE40_GRAFANA_PASSWORD:-usine40-local}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_DEFAULT_THEME: dark
+      GF_DASHBOARDS_MIN_REFRESH_INTERVAL: 1s
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/usine40-cell.json
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GRAFANA_DB_PASSWORD: ${USINE40_GRAFANA_DB_PASSWORD:-grafana-local}
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3300:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  mosquitto-data:
+  db-data:

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/guilhem0908/usine40-cell-pipeline/blob/main/src/usine40/schemas/telemetry.schema.json",
+  "title": "usine40 telemetry payload, version 1",
+  "description": "One sample of one signal. The station and the signal are the last two levels of the MQTT topic.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "session", "seq", "source_us", "gateway_us", "value", "replay"],
+  "properties": {
+    "v": { "const": 1, "description": "Payload schema version." },
+    "session": { "type": "string", "minLength": 1, "description": "Identifier of one run of the gateway process." },
+    "seq": { "type": "integer", "minimum": 0, "description": "Increases by one per message within a session." },
+    "source_us": { "type": "integer", "minimum": 0, "description": "PLC source timestamp, microseconds since the Unix epoch." },
+    "gateway_us": { "type": "integer", "minimum": 0, "description": "Gateway publish time, microseconds since the Unix epoch." },
+    "value": { "type": "number", "description": "Signal value. States and counters are sent as numbers." },
+    "replay": { "type": "boolean", "description": "True when the sample was re-read from the OPC UA history." }
+  }
+}

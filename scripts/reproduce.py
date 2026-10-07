@@ -18,7 +18,6 @@ import time
 from pathlib import Path
 
 import check_readme
-
 import inprocess_experiments
 
 ROOT = Path(__file__).resolve().parents[1]

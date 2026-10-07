@@ -58,5 +58,11 @@ src = ["src", "tests", "scripts"]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["usine40"]
+known-first-party = [
+    "usine40",
+    "capture_dashboard",
+    "check_readme",
+    "compose_scenario",
+    "inprocess_experiments",
+]
 known-local-folder = ["cells"]

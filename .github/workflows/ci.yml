@@ -24,7 +24,7 @@ jobs:
       - name: Lint
         run: ruff check .
       - name: Tests (no Docker: in-process OPC UA server, gateway and broker substitute)
-        run: pytest -m "not docker"
+        run: pytest
       - name: README numbers match the committed results
         run: python scripts/check_readme.py
       - name: In-process experiments reproduce the committed results bit for bit

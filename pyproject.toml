@@ -18,7 +18,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8",
-    "ruff>=0.6",
+    "ruff>=0.16,<0.17",
     "jsonschema>=4.20",
     "pyyaml>=6",
     "numpy>=1.26",
@@ -46,7 +46,6 @@ testpaths = ["tests"]
 addopts = "-q"
 markers = [
     "integration: in-process OPC UA server, gateway, broker substitute and SQLite (no Docker)",
-    "docker: needs the running compose stack (deselected in CI)",
 ]
 
 [tool.ruff]

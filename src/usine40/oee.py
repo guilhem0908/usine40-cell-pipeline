@@ -26,7 +26,7 @@ from bisect import bisect_left, bisect_right
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass
 
-from usine40.model import State
+from usine40.model import STATE_VALUES, State
 from usine40.timebase import US_PER_S
 
 PERCENT = 100.0
@@ -132,14 +132,17 @@ class Series:
         """Time spent in each state inside ``[start_us, end_us)``.
 
         The state at ``t`` is the value of the last point at or before ``t``;
-        time before the first point is not attributed to any state.
+        time before the first point is not attributed to any state, nor is time
+        spent at a value that is not a :class:`State` (the collector never
+        stores one; this keeps a stray row from stopping the aggregation).
         """
         durations = [0] * len(State)
         index = max(bisect_right(self.ts, start_us) - 1, 0)
         while index < len(self.ts) and self.ts[index] < end_us:
             begin = max(self.ts[index], start_us)
             finish = self.ts[index + 1] if index + 1 < len(self.ts) else end_us
-            durations[int(self.values[index])] += max(min(finish, end_us) - begin, 0)
+            if self.values[index] in STATE_VALUES:
+                durations[int(self.values[index])] += max(min(finish, end_us) - begin, 0)
             index += 1
         return tuple(durations)
 

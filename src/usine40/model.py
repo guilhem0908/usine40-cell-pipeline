@@ -30,6 +30,10 @@ class State(IntEnum):
     FAULT = 4
 
 
+STATE_VALUES = frozenset(float(state) for state in State)
+"""The only values a ``state`` sample may carry."""
+
+
 class EventKind(StrEnum):
     STATE = "state"
     PART = "part"

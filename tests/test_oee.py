@@ -106,6 +106,11 @@ def test_time_before_the_first_state_sample_is_not_covered():
     assert window.covered_us == 15 * S
 
 
+def test_time_at_a_value_that_is_not_a_state_is_not_attributed_to_any_state():
+    points = [(0, 1.0), (10 * S, 9.0), (20 * S, -1.0), (30 * S, 2.5), (40 * S, 1.0)]
+    assert Series(points).durations_by_state(0, 50 * S) == (0, 20 * S, 0, 0, 0)
+
+
 def test_state_before_the_window_carries_into_it():
     states = Series([(5 * S, State.FAULT), (70 * S, State.RUNNING)])
     window = totals_from_series("s", states, Series([]), Series([]), 1.0, 30 * S, 60 * S)

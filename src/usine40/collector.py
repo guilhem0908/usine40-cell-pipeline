@@ -3,7 +3,8 @@
 Messages are queued by the network thread and written in small batches by the
 main loop. Three rules keep the stored data trustworthy:
 
-* a malformed topic or payload is counted and dropped, never stored;
+* a malformed topic or payload, or a ``state`` value that is not one of the
+  five station states, is counted and dropped, never stored;
 * a sample is identified by (station, signal, source timestamp), so the
   duplicates produced by QoS 1 redelivery and by history replays are ignored
   by the database;
@@ -33,6 +34,7 @@ from usine40.model import (
     SIGNAL_IDEAL,
     SIGNAL_STATE,
     SIGNAL_TOTAL,
+    STATE_VALUES,
 )
 from usine40.oee import Series, WindowTotals, totals_from_series, window_bounds
 from usine40.payload import PayloadError, Telemetry
@@ -199,6 +201,10 @@ class Collector:
         except (TopicError, PayloadError) as error:
             self.rejected += 1
             _log.warning("Rejected message on %s: %s", topic, error)
+            return None
+        if signal == SIGNAL_STATE and message.value not in STATE_VALUES:
+            self.rejected += 1
+            _log.warning("Rejected message on %s: %r is not a station state", topic, message.value)
             return None
         return SampleRow(
             station=station,

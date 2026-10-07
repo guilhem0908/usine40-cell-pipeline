@@ -146,6 +146,20 @@ def test_collector_rejects_malformed_messages_without_storing_them(pipeline):
     assert len(store.sample_keys()) == 1
 
 
+@pytest.mark.parametrize("value", [9.0, 5.0, -1.0, 2.5])
+def test_collector_drops_a_state_value_that_is_not_a_station_state(pipeline, value):
+    feed, collector, store, _ = pipeline
+    _produce(feed, 20)
+    feed.send("machining", SIGNAL_STATE, 10.0, value)
+    feed.heartbeat(20.0)
+    collector.flush()
+    assert collector.rejected == 1
+    assert [v for _, v in store.series("machining", SIGNAL_STATE, 0, 60 * S)] == [State.RUNNING]
+    assert collector.aggregate() == 1
+    (window,) = store.oee_windows(complete_only=False)
+    assert window.state_us[State.RUNNING] == 20 * S
+
+
 def test_replaying_samples_that_are_already_stored_adds_nothing(pipeline):
     feed, collector, store, broker = pipeline
     for second in range(1, 6):

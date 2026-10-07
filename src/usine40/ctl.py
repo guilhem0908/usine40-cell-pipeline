@@ -18,7 +18,7 @@ from asyncua import Client, Node, ua
 from usine40.config import ENV_PREFIX
 from usine40.opcua_server import BROWSE_NAMES, INJECT_FAULT_METHOD, NAMESPACE_URI, SIGNAL_LOAD_RATE
 
-DEFAULT_URL = "opc.tcp://localhost:14840/usine40"
+DEFAULT_URL = "opc.tcp://127.0.0.1:14840/usine40"
 
 
 async def _cell(client: Client) -> tuple[Node, int]:

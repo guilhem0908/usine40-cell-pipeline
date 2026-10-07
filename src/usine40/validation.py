@@ -11,6 +11,10 @@ from usine40.timebase import US_PER_S
 
 METRICS = ("availability", "performance", "quality", "oee")
 
+SIGNIFICANT_ERROR_PP = 0.01
+"""OEE error, in percentage points, above which a window counts as wrong: far above
+floating-point rounding, far below the effect of a single lost state change."""
+
 
 @dataclass(frozen=True, slots=True)
 class MetricError:
@@ -27,6 +31,7 @@ class Comparison:
     truth_only: int
     pipeline_only: int
     count_mismatches: int
+    wrong_windows: int
     errors: dict[str, MetricError]
 
 
@@ -35,13 +40,15 @@ def compare_windows(truth: Iterable[WindowTotals], pipeline: Iterable[WindowTota
 
     A ratio enters the statistics for a window only when it is defined on both
     sides; a window where exactly one side is undefined counts as a full
-    100-point error, so that missing data cannot hide behind a skipped window.
+    100-point error, so that missing data cannot hide behind a skipped window. A
+    window is wrong when its OEE is off by more than ``SIGNIFICANT_ERROR_PP``.
     """
     truth_by_key = {(w.station, w.start_us): w for w in truth}
     pipeline_by_key = {(w.station, w.start_us): w for w in pipeline}
     shared = sorted(truth_by_key.keys() & pipeline_by_key.keys())
     deltas: dict[str, list[float]] = {metric: [] for metric in METRICS}
     count_mismatches = 0
+    wrong_windows = 0
     for key in shared:
         reference, measured = truth_by_key[key], pipeline_by_key[key]
         if (reference.total, reference.good) != (measured.total, measured.good):
@@ -50,10 +57,11 @@ def compare_windows(truth: Iterable[WindowTotals], pipeline: Iterable[WindowTota
             expected, actual = getattr(reference, metric), getattr(measured, metric)
             if expected is None and actual is None:
                 continue
-            if expected is None or actual is None:
-                deltas[metric].append(PERCENT)
-            else:
-                deltas[metric].append(abs(expected - actual) * PERCENT)
+            one_sided = expected is None or actual is None
+            delta = PERCENT if one_sided else abs(expected - actual) * PERCENT
+            deltas[metric].append(delta)
+            if metric == "oee" and delta > SIGNIFICANT_ERROR_PP:
+                wrong_windows += 1
     errors = {
         metric: MetricError(
             windows=len(values),
@@ -67,6 +75,7 @@ def compare_windows(truth: Iterable[WindowTotals], pipeline: Iterable[WindowTota
         truth_only=len(truth_by_key.keys() - pipeline_by_key.keys()),
         pipeline_only=len(pipeline_by_key.keys() - truth_by_key.keys()),
         count_mismatches=count_mismatches,
+        wrong_windows=wrong_windows,
         errors=errors,
     )
 

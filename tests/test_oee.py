@@ -26,6 +26,7 @@ from usine40.oee import (
     window_bounds,
 )
 from usine40.sim import PlannedStop, default_cell
+from usine40.validation import compare_windows
 
 from cells import SCAN_S, run_scans, steady_cell
 
@@ -165,6 +166,20 @@ def test_combining_windows_sums_durations_and_counts_instead_of_averaging_ratios
         combine([busy, WindowTotals("other", 0, 30 * S, (0, 0, 0, 0, 0), 0, 0, 1.0)])
     with pytest.raises(ValueError, match="zero windows"):
         combine([])
+
+
+def test_a_window_is_wrong_when_its_oee_differs_or_is_undefined_on_one_side_only():
+    def window(index: int, running_s: int, parts: int) -> WindowTotals:
+        state_us = (0, running_s * S, 0, 0, 0)
+        return WindowTotals("s", index * 30 * S, (index + 1) * 30 * S, state_us, parts, parts, 2.0)
+
+    truth = [window(0, 30, 15), window(1, 30, 15), window(2, 30, 15), window(3, 0, 0)]
+    pipeline = [window(0, 30, 15), window(1, 15, 15), window(2, 0, 0), window(3, 0, 0)]
+    comparison = compare_windows(truth, pipeline)
+    assert comparison.matched == 4
+    assert comparison.wrong_windows == 2
+    assert comparison.errors["oee"].windows == 3
+    assert comparison.errors["oee"].max_pp == pytest.approx(100.0)
 
 
 @pytest.mark.parametrize("seed", [1, 2, 3])

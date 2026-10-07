@@ -1,0 +1,237 @@
+{
+  "oee_validation": {
+    "seeds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "simulated_minutes_per_seed": 60,
+    "window_s": 30,
+    "station_windows": 3600,
+    "unmatched_windows": 0,
+    "windows_with_wrong_part_count": 0,
+    "samples_stored": 177536,
+    "samples_missing": 0,
+    "error_pp": {
+      "availability": {
+        "max_pp": 0.0,
+        "mean_pp": 0.0
+      },
+      "performance": {
+        "max_pp": 0.0,
+        "mean_pp": 0.0
+      },
+      "quality": {
+        "max_pp": 0.0,
+        "mean_pp": 0.0
+      },
+      "oee": {
+        "max_pp": 0.0,
+        "mean_pp": 0.0
+      }
+    },
+    "stations": {
+      "infeed": {
+        "truth": {
+          "windows": 1200,
+          "planned_s": 33000.0,
+          "run_s": 24463.2,
+          "parts": 14565,
+          "good_parts": 14565,
+          "availability": 0.7413090909090909,
+          "performance": 0.9526145393897772,
+          "quality": 1.0,
+          "oee": 0.7061818181818181
+        },
+        "pipeline": {
+          "windows": 1200,
+          "planned_s": 33000.0,
+          "run_s": 24463.2,
+          "parts": 14565,
+          "good_parts": 14565,
+          "availability": 0.7413090909090909,
+          "performance": 0.9526145393897772,
+          "quality": 1.0,
+          "oee": 0.7061818181818181
+        }
+      },
+      "machining": {
+        "truth": {
+          "windows": 1200,
+          "planned_s": 33000.0,
+          "run_s": 31346.95,
+          "parts": 14515,
+          "good_parts": 14065,
+          "availability": 0.9499075757575758,
+          "performance": 0.9260869079766931,
+          "quality": 0.9689975887013434,
+          "oee": 0.8524242424242425
+        },
+        "pipeline": {
+          "windows": 1200,
+          "planned_s": 33000.0,
+          "run_s": 31346.95,
+          "parts": 14515,
+          "good_parts": 14065,
+          "availability": 0.9499075757575758,
+          "performance": 0.9260869079766931,
+          "quality": 0.9689975887013434,
+          "oee": 0.8524242424242425
+        }
+      },
+      "inspection": {
+        "truth": {
+          "windows": 1200,
+          "planned_s": 33000.0,
+          "run_s": 20654.55,
+          "parts": 14059,
+          "good_parts": 13518,
+          "availability": 0.6258954545454546,
+          "performance": 0.9529425719756663,
+          "quality": 0.9615193114730778,
+          "oee": 0.573490909090909
+        },
+        "pipeline": {
+          "windows": 1200,
+          "planned_s": 33000.0,
+          "run_s": 20654.55,
+          "parts": 14059,
+          "good_parts": 13518,
+          "availability": 0.6258954545454546,
+          "performance": 0.9529425719756663,
+          "quality": 0.9615193114730778,
+          "oee": 0.573490909090909
+        }
+      }
+    }
+  },
+  "fault_scenarios": [
+    {
+      "scenario": "gateway_no_replay",
+      "label": "Gateway down 60 s, no replay",
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "produced": 12812,
+      "missing": 1598,
+      "wire_missing": 0,
+      "wire_duplicates": 0,
+      "windows": 240,
+      "wrong_windows": 31,
+      "worst_oee_error_pp": 130.66666666666666,
+      "parts_truth": 3204,
+      "parts_pipeline": 3204
+    },
+    {
+      "scenario": "gateway_replay_30",
+      "label": "Gateway down 60 s, 30 s replay",
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "produced": 12812,
+      "missing": 841,
+      "wire_missing": 0,
+      "wire_duplicates": 0,
+      "windows": 240,
+      "wrong_windows": 30,
+      "worst_oee_error_pp": 100.0,
+      "parts_truth": 3204,
+      "parts_pipeline": 3204
+    },
+    {
+      "scenario": "gateway_replay_120",
+      "label": "Gateway down 60 s, 120 s replay",
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "produced": 12812,
+      "missing": 0,
+      "wire_missing": 0,
+      "wire_duplicates": 0,
+      "windows": 240,
+      "wrong_windows": 0,
+      "worst_oee_error_pp": 0.0,
+      "parts_truth": 3204,
+      "parts_pipeline": 3204
+    },
+    {
+      "scenario": "broker_qos0",
+      "label": "Broker down 60 s, QoS 0",
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "produced": 12812,
+      "missing": 1645,
+      "wire_missing": 1645,
+      "wire_duplicates": 0,
+      "windows": 240,
+      "wrong_windows": 45,
+      "worst_oee_error_pp": 193.33333333333337,
+      "parts_truth": 3204,
+      "parts_pipeline": 3204
+    },
+    {
+      "scenario": "broker_qos1",
+      "label": "Broker down 60 s, QoS 1",
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "produced": 12812,
+      "missing": 0,
+      "wire_missing": 0,
+      "wire_duplicates": 0,
+      "windows": 240,
+      "wrong_windows": 0,
+      "worst_oee_error_pp": 0.0,
+      "parts_truth": 3204,
+      "parts_pipeline": 3204
+    },
+    {
+      "scenario": "broker_qos1_redelivery",
+      "label": "Broker down 60 s, QoS 1, 8 messages redelivered",
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "produced": 12812,
+      "missing": 0,
+      "wire_missing": 0,
+      "wire_duplicates": 40,
+      "windows": 240,
+      "wrong_windows": 0,
+      "worst_oee_error_pp": 0.0,
+      "parts_truth": 3204,
+      "parts_pipeline": 3204
+    }
+  ]
+}

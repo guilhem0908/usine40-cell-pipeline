@@ -1,0 +1,443 @@
+{
+  "environment": {
+    "host_os": "Windows 11",
+    "logical_cpus": 32,
+    "docker_server": "29.8.1 linux/amd64",
+    "images": {
+      "eclipse-mosquitto:2.0.22": "24.4MB",
+      "grafana/grafana:11.4.8": "706MB",
+      "postgres:17-alpine": "424MB",
+      "usine40cell/app:0.1.0": "294MB"
+    }
+  },
+  "cold_start": {
+    "all_healthy_s": 45.6,
+    "first_sample_s": 46.0,
+    "first_oee_window_s": 46.0
+  },
+  "nominal": {
+    "duration_s": 180.0,
+    "rows_per_s": 5.5,
+    "latency_ms": {
+      "opcua": {
+        "n": 993,
+        "p50": 19.3,
+        "p95": 71.0,
+        "p99": 103.3,
+        "max": 107.0
+      },
+      "mqtt": {
+        "n": 993,
+        "p50": 1.1,
+        "p95": 1.7,
+        "p99": 13.6,
+        "max": 48.6
+      },
+      "database": {
+        "n": 993,
+        "p50": 30.4,
+        "p95": 50.9,
+        "p99": 72.8,
+        "max": 113.9
+      },
+      "total": {
+        "n": 993,
+        "p50": 62.9,
+        "p95": 121.4,
+        "p99": 151.6,
+        "max": 173.1
+      }
+    },
+    "stations": {
+      "infeed": {
+        "truth": {
+          "windows": 6,
+          "planned_s": 180.0,
+          "run_s": 135.85,
+          "parts": 82,
+          "good_parts": 82,
+          "availability": 0.7547222222222222,
+          "performance": 0.9657710710342291,
+          "quality": 1.0,
+          "oee": 0.728888888888889
+        },
+        "pipeline": {
+          "windows": 6,
+          "planned_s": 180.0,
+          "run_s": 135.85,
+          "parts": 82,
+          "good_parts": 82,
+          "availability": 0.7547222222222222,
+          "performance": 0.9657710710342291,
+          "quality": 1.0,
+          "oee": 0.728888888888889
+        }
+      },
+      "inspection": {
+        "truth": {
+          "windows": 6,
+          "planned_s": 180.0,
+          "run_s": 119.6,
+          "parts": 81,
+          "good_parts": 77,
+          "availability": 0.6644444444444444,
+          "performance": 0.9481605351170568,
+          "quality": 0.9506172839506173,
+          "oee": 0.5988888888888888
+        },
+        "pipeline": {
+          "windows": 6,
+          "planned_s": 180.0,
+          "run_s": 119.6,
+          "parts": 81,
+          "good_parts": 77,
+          "availability": 0.6644444444444444,
+          "performance": 0.9481605351170568,
+          "quality": 0.9506172839506173,
+          "oee": 0.5988888888888888
+        }
+      },
+      "machining": {
+        "truth": {
+          "windows": 6,
+          "planned_s": 180.0,
+          "run_s": 177.65,
+          "parts": 82,
+          "good_parts": 81,
+          "availability": 0.9869444444444444,
+          "performance": 0.9231635237827188,
+          "quality": 0.9878048780487805,
+          "oee": 0.9
+        },
+        "pipeline": {
+          "windows": 6,
+          "planned_s": 180.0,
+          "run_s": 177.65,
+          "parts": 82,
+          "good_parts": 81,
+          "availability": 0.9869444444444444,
+          "performance": 0.9231635237827188,
+          "quality": 0.9878048780487805,
+          "oee": 0.9
+        }
+      }
+    },
+    "samples_expected": 993,
+    "samples_missing": 0,
+    "windows": 18,
+    "windows_unmatched": 0,
+    "wrong_windows": 0,
+    "error_pp": {
+      "availability": {
+        "max_pp": 0.0,
+        "mean_pp": 0.0
+      },
+      "performance": {
+        "max_pp": 0.0,
+        "mean_pp": 0.0
+      },
+      "quality": {
+        "max_pp": 0.0,
+        "mean_pp": 0.0
+      },
+      "oee": {
+        "max_pp": 0.0,
+        "mean_pp": 0.0
+      }
+    },
+    "parts_truth": 245,
+    "parts_pipeline": 245
+  },
+  "alerts": {
+    "injections": 6,
+    "fault_s": 20.0,
+    "evaluation_interval_s": 10,
+    "delays_s": [
+      0.6,
+      4.24,
+      7.62,
+      9.16,
+      6.78,
+      7.8
+    ],
+    "min_s": 0.6,
+    "median_s": 7.2,
+    "max_s": 9.16
+  },
+  "capture": {
+    "frames": 44,
+    "width": 900,
+    "height": 627,
+    "bytes": 1566418
+  },
+  "gateway_kill": [
+    {
+      "replay_s": 0,
+      "outage_s": 20.0,
+      "recovery_s": 6.24,
+      "received": 342,
+      "wire_duplicates": 0,
+      "wire_missing": 0,
+      "replay_received": 114,
+      "replay_inserted": 9,
+      "samples_expected": 391,
+      "samples_missing": 128,
+      "windows": 6,
+      "windows_unmatched": 0,
+      "wrong_windows": 0,
+      "error_pp": {
+        "availability": {
+          "max_pp": 26.5,
+          "mean_pp": 7.499999999999999
+        },
+        "performance": {
+          "max_pp": 26.79543686803214,
+          "mean_pp": 7.709843332529178
+        },
+        "quality": {
+          "max_pp": 0.0,
+          "mean_pp": 0.0
+        },
+        "oee": {
+          "max_pp": 1.1102230246251565e-14,
+          "mean_pp": 1.8503717077085944e-15
+        }
+      },
+      "parts_truth": 81,
+      "parts_pipeline": 81
+    },
+    {
+      "replay_s": 120,
+      "outage_s": 20.0,
+      "recovery_s": 4.54,
+      "received": 971,
+      "wire_duplicates": 0,
+      "wire_missing": 0,
+      "replay_received": 767,
+      "replay_inserted": 113,
+      "samples_expected": 349,
+      "samples_missing": 0,
+      "windows": 3,
+      "windows_unmatched": 0,
+      "wrong_windows": 0,
+      "error_pp": {
+        "availability": {
+          "max_pp": 0.0,
+          "mean_pp": 0.0
+        },
+        "performance": {
+          "max_pp": 0.0,
+          "mean_pp": 0.0
+        },
+        "quality": {
+          "max_pp": 0.0,
+          "mean_pp": 0.0
+        },
+        "oee": {
+          "max_pp": 0.0,
+          "mean_pp": 0.0
+        }
+      },
+      "parts_truth": 29,
+      "parts_pipeline": 29
+    }
+  ],
+  "broker_kill": [
+    {
+      "qos": 0,
+      "outage_s": 15.0,
+      "recovery_s": 4.78,
+      "received": 475,
+      "wire_duplicates": 0,
+      "wire_missing": 102,
+      "replay_received": 218,
+      "replay_inserted": 9,
+      "samples_expected": 350,
+      "samples_missing": 102,
+      "windows": 3,
+      "windows_unmatched": 0,
+      "wrong_windows": 3,
+      "error_pp": {
+        "availability": {
+          "max_pp": 19.166666666666664,
+          "mean_pp": 10.888888888888888
+        },
+        "performance": {
+          "max_pp": 15.044031071537034,
+          "mean_pp": 10.007580381340823
+        },
+        "quality": {
+          "max_pp": 0.5494505494505475,
+          "mean_pp": 0.1831501831501825
+        },
+        "oee": {
+          "max_pp": 6.666666666666665,
+          "mean_pp": 5.5555555555555545
+        }
+      },
+      "parts_truth": 39,
+      "parts_pipeline": 42
+    },
+    {
+      "qos": 1,
+      "outage_s": 15.0,
+      "recovery_s": 5.83,
+      "received": 522,
+      "wire_duplicates": 0,
+      "wire_missing": 0,
+      "replay_received": 218,
+      "replay_inserted": 9,
+      "samples_expected": 305,
+      "samples_missing": 0,
+      "windows": 6,
+      "windows_unmatched": 0,
+      "wrong_windows": 0,
+      "error_pp": {
+        "availability": {
+          "max_pp": 0.0,
+          "mean_pp": 0.0
+        },
+        "performance": {
+          "max_pp": 0.0,
+          "mean_pp": 0.0
+        },
+        "quality": {
+          "max_pp": 0.0,
+          "mean_pp": 0.0
+        },
+        "oee": {
+          "max_pp": 0.0,
+          "mean_pp": 0.0
+        }
+      },
+      "parts_truth": 63,
+      "parts_pipeline": 63
+    }
+  ],
+  "load": [
+    {
+      "target_changes_per_s": 100,
+      "duration_s": 30.0,
+      "rows_per_s": 105.8,
+      "latency_ms": {
+        "opcua": {
+          "n": 3173,
+          "p50": 35.1,
+          "p95": 78.9,
+          "p99": 80.5,
+          "max": 103.1
+        },
+        "mqtt": {
+          "n": 3173,
+          "p50": 2.5,
+          "p95": 3.6,
+          "p99": 16.3,
+          "max": 22.0
+        },
+        "database": {
+          "n": 3173,
+          "p50": 31.6,
+          "p95": 61.9,
+          "p99": 187.3,
+          "max": 342.2
+        },
+        "total": {
+          "n": 3173,
+          "p50": 86.9,
+          "p95": 134.4,
+          "p99": 230.8,
+          "max": 429.4
+        }
+      },
+      "analog_updates_missing": 0,
+      "containers": {
+        "collector": {
+          "cpu_percent": 42.03,
+          "memory_mb": 31.4
+        },
+        "db": {
+          "cpu_percent": 15.08,
+          "memory_mb": 51.0
+        },
+        "gateway": {
+          "cpu_percent": 6.02,
+          "memory_mb": 39.7
+        },
+        "grafana": {
+          "cpu_percent": 0.85,
+          "memory_mb": 114.2
+        },
+        "mosquitto": {
+          "cpu_percent": 0.84,
+          "memory_mb": 1.8
+        },
+        "plc": {
+          "cpu_percent": 14.34,
+          "memory_mb": 89.9
+        }
+      }
+    },
+    {
+      "target_changes_per_s": 1000,
+      "duration_s": 30.0,
+      "rows_per_s": 1005.6,
+      "latency_ms": {
+        "opcua": {
+          "n": 30167,
+          "p50": 3138.8,
+          "p95": 6026.4,
+          "p99": 6209.5,
+          "max": 6289.0
+        },
+        "mqtt": {
+          "n": 30167,
+          "p50": 28.3,
+          "p95": 72.9,
+          "p99": 131.7,
+          "max": 255.9
+        },
+        "database": {
+          "n": 30167,
+          "p50": 60.7,
+          "p95": 130.3,
+          "p99": 183.2,
+          "max": 203.6
+        },
+        "total": {
+          "n": 30167,
+          "p50": 3221.3,
+          "p95": 6100.4,
+          "p99": 6300.0,
+          "max": 6482.8
+        }
+      },
+      "analog_updates_missing": 0,
+      "containers": {
+        "collector": {
+          "cpu_percent": 37.04,
+          "memory_mb": 27.7
+        },
+        "db": {
+          "cpu_percent": 16.05,
+          "memory_mb": 59.9
+        },
+        "gateway": {
+          "cpu_percent": 39.06,
+          "memory_mb": 40.3
+        },
+        "grafana": {
+          "cpu_percent": 0.15,
+          "memory_mb": 116.1
+        },
+        "mosquitto": {
+          "cpu_percent": 4.17,
+          "memory_mb": 1.9
+        },
+        "plc": {
+          "cpu_percent": 56.78,
+          "memory_mb": 106.1
+        }
+      }
+    }
+  ]
+}

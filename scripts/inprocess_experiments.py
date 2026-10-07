@@ -122,6 +122,8 @@ async def _run_fault_scenario(scenario: FaultScenario, seed: int) -> dict:
             "wire_duplicates": sum(s.duplicates for s in sessions),
             "windows": comparison.matched,
             "wrong_windows": comparison.wrong_windows,
+            "wrong_windows_right_counts": comparison.wrong_windows_right_counts,
+            "wrong_part_count_windows": comparison.count_mismatches,
             "worst_oee_error_pp": comparison.errors["oee"].max_pp,
             "worst_availability_error_pp": comparison.errors["availability"].max_pp,
             "parts_truth": sum(w.total for w in truth),
@@ -199,6 +201,13 @@ def run_fault_scenarios(out_dir: Path) -> list[dict]:
                 "wire_duplicates": sum(run["wire_duplicates"] for run in runs),
                 "windows": sum(run["windows"] for run in runs),
                 "wrong_windows": sum(run["wrong_windows"] for run in runs),
+                "wrong_windows_right_counts": sum(
+                    run["wrong_windows_right_counts"] for run in runs
+                ),
+                "wrong_part_count_windows": sum(run["wrong_part_count_windows"] for run in runs),
+                "worst_availability_error_pp": max(
+                    run["worst_availability_error_pp"] for run in runs
+                ),
                 "worst_oee_error_pp": max(run["worst_oee_error_pp"] for run in runs),
                 "parts_truth": sum(run["parts_truth"] for run in runs),
                 "parts_pipeline": sum(run["parts_pipeline"] for run in runs),

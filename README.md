@@ -12,11 +12,11 @@
 
 ## Why this exists
 
-I am a final-year robotics engineering student at UPSSITECH (University of Toulouse), and this year my class runs a team project on Usine 4.0, the Industry 4.0 smart factory (in progress). This repository is a personal study next to it, built in October 2026 with AI assistance (Claude); it is separate from that project and contains nothing from it. At AIST in Tsukuba I prepared a ROS 2 publish/subscribe interface for a mobile robot with stale-frame rejection at 0.5 s, velocity clamps and a dead-man timer ([KachakaNavigation](https://github.com/guilhem0908/KachakaNavigation)). Here I wanted the same discipline on the machine side of a factory: stamp every value at the source, never trust a message because it arrived, count what was lost, and bound what an operator command may do. The question I set myself is whether the numbers on an OEE dashboard can be trusted, so the pipeline has to prove it against a ground truth and I measured what breaks it.
+I am a final-year robotics engineering student at UPSSITECH (University of Toulouse), and this year my class runs a team project on Usine 4.0, the Industry 4.0 smart factory (in progress). This repository is a separate personal study, built in October 2026 with AI assistance (Claude). At AIST in Tsukuba I prepared a ROS 2 publish/subscribe interface for a mobile robot with stale-frame rejection at 0.5 s, velocity clamps and a dead-man timer ([KachakaNavigation](https://github.com/guilhem0908/KachakaNavigation)). Here I wanted the same discipline on the machine side of a factory: stamp every value at the source, never trust a message because it arrived, count what was lost, and bound what an operator command may do. The question I set myself is whether the numbers on an OEE dashboard can be trusted, so the pipeline has to prove it against a ground truth and I measured what breaks it.
 
 ## Results
 
-**The OEE stored by the pipeline equals the OEE recomputed from the simulator's event log in every window I compared (largest error 0.000 pp). The only way I found to make it wrong is to lose a state change, which a 60 s gateway or broker outage does unless the OPC UA history replay (gateway) or MQTT QoS 1 (broker) is on.**
+**The OEE stored by the pipeline equals the OEE recomputed from the simulator's event log in every window I compared (largest error 0.000 pp). The only way I found to make it wrong is to lose samples, which a 60 s gateway or broker outage does unless the OPC UA history replay (gateway) or MQTT QoS 1 (broker) is on: a lost state change corrupts availability and performance, a lost part-counter sample moves parts into a later window and OEE with them.**
 
 The simulated cell has three stations: `infeed`, `machining` (the bottleneck) and `inspection`. OEE is compared per station over windows of 30 s.
 
@@ -34,16 +34,16 @@ On the real stack (Mosquitto, PostgreSQL, wall-clock time): 18 station-windows o
 
 ### Outages
 
-A 60 s outage, repeated on 5 seeds per scenario, in-process. "Never stored" counts samples (state changes, part counters, heartbeats) that the simulator produced and the database does not contain. Part counts survive every scenario because counters are cumulative; a lost state change does not come back, so availability and OEE are wrong. A replay shorter than the outage refills only part of it. An error above 100 pp means the damaged window reports an OEE above 100 %.
+A 60 s outage, repeated on 5 seeds per scenario, in-process. "Never stored" counts samples (state changes, part counters, heartbeats) that the simulator produced and the database does not contain. The two kinds of lost sample do different damage. A lost state change is never restored: the station keeps its previous state until the next change, which corrupts availability and performance but not their product, since OEE is `C * N_good / T_p` and these runs have no planned stop. A lost counter sample does not lose the part, because the next counter sample carries the running total, so the totals of the run survive (3,204 parts in the event log and 3,204 in the pipeline in every scenario); but the parts are counted in the window of the sample that carries them, so the windows of the gap show too few parts and a later window too many. Over the six scenarios, 106 windows have a wrong OEE and 0 of them have the right part count: the counters, not the states, are what move OEE. A replay shorter than the outage refills only part of it. An error above 100 pp means the damaged window reports an OEE above 100 %.
 
-| Scenario (5 seeds each) | Samples produced | Never stored | Duplicates on the wire | Wrong windows | Worst OEE error |
-| :--- | ---: | ---: | ---: | ---: | ---: |
-| Gateway down 60 s, no replay | 12,812 | 1,598 (12.5 %) | 0 | 31 of 240 | 130.7 pp |
-| Gateway down 60 s, 30 s replay | 12,812 | 841 (6.6 %) | 0 | 30 of 240 | 100.0 pp |
-| Gateway down 60 s, 120 s replay | 12,812 | 0 (0.0 %) | 0 | 0 of 240 | 0.0 pp |
-| Broker down 60 s, QoS 0 | 12,812 | 1,645 (12.8 %) | 0 | 45 of 240 | 193.3 pp |
-| Broker down 60 s, QoS 1 | 12,812 | 0 (0.0 %) | 0 | 0 of 240 | 0.0 pp |
-| Broker down 60 s, QoS 1, 8 messages redelivered | 12,812 | 0 (0.0 %) | 40 | 0 of 240 | 0.0 pp |
+| Scenario (5 seeds each) | Samples produced | Never stored | Duplicates on the wire | Wrong OEE windows | Worst availability error | Worst OEE error |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Gateway down 60 s, no replay | 12,812 | 1,598 (12.5 %) | 0 | 31 of 240 | 78.7 pp | 130.7 pp |
+| Gateway down 60 s, 30 s replay | 12,812 | 841 (6.6 %) | 0 | 30 of 240 | 78.7 pp | 100.0 pp |
+| Gateway down 60 s, 120 s replay | 12,812 | 0 (0.0 %) | 0 | 0 of 240 | 0.0 pp | 0.0 pp |
+| Broker down 60 s, QoS 0 | 12,812 | 1,645 (12.8 %) | 0 | 45 of 240 | 85.0 pp | 193.3 pp |
+| Broker down 60 s, QoS 1 | 12,812 | 0 (0.0 %) | 0 | 0 of 240 | 0.0 pp | 0.0 pp |
+| Broker down 60 s, QoS 1, 8 messages redelivered | 12,812 | 0 (0.0 %) | 40 | 0 of 240 | 0.0 pp | 0.0 pp |
 
 The same experiment on real Mosquitto and PostgreSQL under Docker, one run per row, killing the container with `docker compose kill`:
 
@@ -54,7 +54,7 @@ The same experiment on real Mosquitto and PostgreSQL under Docker, one run per r
 | Broker killed, QoS 0 | 15 | 350 | 102 (29.1 %) | 0 | 4.78 |
 | Broker killed, QoS 1 | 15 | 305 | 0 (0.0 %) | 0 | 5.83 |
 
-Real Mosquitto reproduces the substitute's behaviour: QoS 0 loses what is published during the outage, QoS 1 with the client's queue loses nothing, and the history replay refilled the gateway gap completely. No duplicate reached the wire in these runs; the in-process row with 8 redelivered messages shows that the primary key absorbs them.
+Real Mosquitto reproduces the substitute's behaviour: QoS 0 loses what is published during the outage, QoS 1 with the client's queue loses nothing, and the history replay refilled the gateway gap completely. No duplicate reached the wire in these runs; the in-process row with 8 redelivered messages shows that the primary key absorbs them. Window by window, these runs (one each, 3 to 6 windows, so no statistics) show the same two failure modes: in the gateway run without replay, 0 of 6 windows had a wrong OEE (up to 0.0 pp) while availability was off by up to 26.5 pp and performance by up to 26.8 pp; in the QoS 0 broker run, 3 of 3 compared windows had a wrong OEE (up to 6.7 pp), availability was off by up to 19.2 pp, and 42 parts were counted against 39 in the event log.
 
 ### Latency, PLC timestamp to database row
 

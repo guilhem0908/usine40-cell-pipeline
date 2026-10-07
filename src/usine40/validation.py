@@ -32,6 +32,7 @@ class Comparison:
     pipeline_only: int
     count_mismatches: int
     wrong_windows: int
+    wrong_windows_right_counts: int
     errors: dict[str, MetricError]
 
 
@@ -41,7 +42,9 @@ def compare_windows(truth: Iterable[WindowTotals], pipeline: Iterable[WindowTota
     A ratio enters the statistics for a window only when it is defined on both
     sides; a window where exactly one side is undefined counts as a full
     100-point error, so that missing data cannot hide behind a skipped window. A
-    window is wrong when its OEE is off by more than ``SIGNIFICANT_ERROR_PP``.
+    window is wrong when its OEE is off by more than ``SIGNIFICANT_ERROR_PP``;
+    ``wrong_windows_right_counts`` counts those wrong windows whose part counts
+    are nevertheless right, i.e. whose OEE error does not come from the counters.
     """
     truth_by_key = {(w.station, w.start_us): w for w in truth}
     pipeline_by_key = {(w.station, w.start_us): w for w in pipeline}
@@ -49,9 +52,11 @@ def compare_windows(truth: Iterable[WindowTotals], pipeline: Iterable[WindowTota
     deltas: dict[str, list[float]] = {metric: [] for metric in METRICS}
     count_mismatches = 0
     wrong_windows = 0
+    wrong_windows_right_counts = 0
     for key in shared:
         reference, measured = truth_by_key[key], pipeline_by_key[key]
-        if (reference.total, reference.good) != (measured.total, measured.good):
+        counts_match = (reference.total, reference.good) == (measured.total, measured.good)
+        if not counts_match:
             count_mismatches += 1
         for metric in METRICS:
             expected, actual = getattr(reference, metric), getattr(measured, metric)
@@ -62,6 +67,7 @@ def compare_windows(truth: Iterable[WindowTotals], pipeline: Iterable[WindowTota
             deltas[metric].append(delta)
             if metric == "oee" and delta > SIGNIFICANT_ERROR_PP:
                 wrong_windows += 1
+                wrong_windows_right_counts += counts_match
     errors = {
         metric: MetricError(
             windows=len(values),
@@ -76,6 +82,7 @@ def compare_windows(truth: Iterable[WindowTotals], pipeline: Iterable[WindowTota
         pipeline_only=len(pipeline_by_key.keys() - truth_by_key.keys()),
         count_mismatches=count_mismatches,
         wrong_windows=wrong_windows,
+        wrong_windows_right_counts=wrong_windows_right_counts,
         errors=errors,
     )
 

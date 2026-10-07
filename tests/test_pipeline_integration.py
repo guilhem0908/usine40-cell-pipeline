@@ -89,7 +89,10 @@ def test_gateway_restart_without_replay_loses_the_transitions_in_between():
     missing, comparison, truth, pipeline = asyncio.run(scenario())
     assert missing > 0
     assert _worst_error(comparison) > 1.0
-    # Cumulative counters make part counts self-healing even though samples were lost.
+    # Cumulative counters keep the totals of the run: the first sample after the gap carries
+    # the running total. They do not keep the per-window counts: the parts missing from the
+    # windows of the gap are counted in the window of that sample.
+    assert comparison.count_mismatches > 0
     for station in truth:
         assert pipeline[station].total == truth[station].total
         assert pipeline[station].good == truth[station].good

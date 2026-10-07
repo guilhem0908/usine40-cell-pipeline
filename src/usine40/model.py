@@ -98,8 +98,8 @@ class SampleEncoder:
     """Turns simulator events into the samples a PLC would expose.
 
     Finished parts become cumulative counters, as on a real controller: a lost
-    message then delays a count but never loses it, because the next sample
-    carries the running total.
+    message never loses a part, because the next sample carries the running
+    total, but the part is then counted in the window of that later sample.
     """
 
     def __init__(self) -> None:

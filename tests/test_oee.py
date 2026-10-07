@@ -140,6 +140,13 @@ def test_lost_counter_samples_do_not_lose_parts():
     assert thinned.counter_increase(0, 60 * S) == complete.counter_increase(0, 60 * S) == 20
 
 
+def test_lost_counter_samples_move_parts_into_the_window_of_the_next_sample():
+    complete = Series([(0, 0.0)] + [(n * S, float(n)) for n in range(1, 61)])
+    thinned = Series([(0, 0.0), (1 * S, 1.0)] + [(n * S, float(n)) for n in range(40, 61)])
+    assert [complete.counter_increase(a * S, b * S) for a, b in [(0, 30), (30, 60)]] == [29, 30]
+    assert [thinned.counter_increase(a * S, b * S) for a, b in [(0, 30), (30, 60)]] == [1, 58]
+
+
 def test_ratios_are_undefined_rather_than_zero_without_data():
     empty = WindowTotals("s", 0, 60 * S, (60 * S, 0, 0, 0, 0), 0, 0, 1.0)
     assert ratio(1.0, 0.0) is None
@@ -183,6 +190,8 @@ def test_a_window_is_wrong_when_its_oee_differs_or_is_undefined_on_one_side_only
     comparison = compare_windows(truth, pipeline)
     assert comparison.matched == 4
     assert comparison.wrong_windows == 2
+    assert comparison.wrong_windows_right_counts == 1  # window 1: state wrong, parts right
+    assert comparison.count_mismatches == 1
     assert comparison.errors["oee"].windows == 3
     assert comparison.errors["oee"].max_pp == pytest.approx(100.0)
 

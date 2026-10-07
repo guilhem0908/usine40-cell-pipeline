@@ -31,7 +31,7 @@ An error of zero therefore says the plumbing (OPC UA, MQTT, SQL, window slicing)
 
 * **Timestamps are integer microseconds** from the PLC scan to the database key. Floats would round differently at each hop and break idempotent inserts.
 * **A sample is identified by `(station, signal, source_us)`.** That primary key makes MQTT redelivery and history replay harmless: the second insert is ignored.
-* **Counters are cumulative.** A lost message delays a count, the next sample carries the total. A lost state change is different: nothing later restores it, which is what the gateway-restart experiment shows.
+* **Counters are cumulative.** A lost counter sample does not lose the part: the next sample carries the running total, so the totals over the whole run survive. But the part is counted in the window of the sample that carries it, so a loss moves parts from the windows of the gap into a later window, and with them the per-window OEE (possibly above 100 % in the later window, below the truth in the others). A lost state change is worse in another way: nothing later restores it, the station keeps its previous state until the next change, and availability and performance are wrong. Their product, OEE, is not, as long as the window has no planned stop, because `OEE = C_ideal * N_good / T_p` does not depend on how the planned time is split between states. The outage experiments report both effects separately: the worst availability error and, for the windows whose OEE is wrong, whether the part count was wrong too.
 * **Sessions and sequence numbers.** The gateway numbers its messages per session; the collector turns gaps and repeats into `missing` and `duplicates` per session (`SequenceTracker`). Retained messages handed over at subscription time are not part of the live stream and are not counted.
 * **Retained telemetry.** Publishing with the retain flag lets a late subscriber receive the current value of every signal, including the ideal cycle time that never changes.
 * **History replay.** After a start the gateway subscribes first and then re-reads the last `backfill_s` seconds from the server's OPC UA history. Subscribing first makes the replay and the live stream overlap rather than leave a gap; the overlap is removed by the primary key. The first value a subscription delivers can be arbitrarily old and is flagged `replay` like the history, so it cannot pollute the latency statistics.
@@ -41,6 +41,8 @@ An error of zero therefore says the plumbing (OPC UA, MQTT, SQL, window slicing)
 ## 5. Collector and watermark
 
 OEE windows are computed only up to the watermark, the source timestamp of the last stored PLC heartbeat. When data stops, the figures stop; the last known state is not stretched up to the present. The last `recompute_s` seconds are recomputed on every pass so that late samples (replays, redeliveries) correct the windows they belong to. A window is flagged `complete` once the watermark has passed its end.
+
+The collector also validates what a message means, not only its shape: a `state` sample whose value is not one of the five station states is counted in `rejected` and dropped, so that a buggy or hostile publisher on the anonymous broker cannot put a row in the database that stops the aggregation. `Series.durations_by_state` ignores such a value as well, in case a row got in by another route.
 
 ## 6. How latency is measured
 

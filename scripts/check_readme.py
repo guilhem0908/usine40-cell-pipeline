@@ -84,8 +84,9 @@ def oee_agreement(results: dict) -> dict[str, str]:
 
 
 def outage_simulation(results: dict) -> dict[str, str]:
+    scenarios = results["fault_scenarios"]
     rows = []
-    for scenario in results["fault_scenarios"]:
+    for scenario in scenarios:
         rows.append(
             [
                 scenario["label"],
@@ -93,6 +94,7 @@ def outage_simulation(results: dict) -> dict[str, str]:
                 count_share(scenario["missing"], scenario["produced"]),
                 f"{scenario['wire_duplicates']:,}",
                 f"{scenario['wrong_windows']} of {scenario['windows']}",
+                f"{scenario['worst_availability_error_pp']:.1f} pp",
                 f"{scenario['worst_oee_error_pp']:.1f} pp",
             ]
         )
@@ -101,10 +103,28 @@ def outage_simulation(results: dict) -> dict[str, str]:
         "Samples produced",
         "Never stored",
         "Duplicates on the wire",
-        "Wrong windows",
+        "Wrong OEE windows",
+        "Worst availability error",
         "Worst OEE error",
     ]
-    return {"in-process outage table": table(header, rows, ["left"] + ["right"] * 5)}
+    wrong = sum(scenario["wrong_windows"] for scenario in scenarios)
+    right_counts = sum(scenario["wrong_windows_right_counts"] for scenario in scenarios)
+    totals = {(scenario["parts_truth"], scenario["parts_pipeline"]) for scenario in scenarios}
+    (truth, pipeline), *others = totals
+    if truth == pipeline and not others:
+        parts = (
+            f"{truth:,} parts in the event log and {pipeline:,} in the pipeline "
+            "in every scenario"
+        )
+    else:
+        parts = "the part totals of the run differ in some scenario (see results/inprocess.json)"
+    return {
+        "in-process outage table": table(header, rows, ["left"] + ["right"] * 6),
+        "in-process wrong OEE windows": (
+            f"{wrong} windows have a wrong OEE and {right_counts} of them have the right part count"
+        ),
+        "in-process part totals": parts,
+    }
 
 
 def latency(results: dict) -> dict[str, str]:
@@ -219,7 +239,28 @@ def outages(results: dict) -> dict[str, str]:
         "Duplicates on the wire",
         "First live row after restart (s)",
     ]
-    return {"compose outage table": table(header, rows, ["left"] + ["right"] * 5)}
+    gateway = results["gateway_kill"][0]
+    qos0 = next(run for run in results["broker_kill"] if run["qos"] == 0)
+    return {
+        "compose outage table": table(header, rows, ["left"] + ["right"] * 5),
+        "compose gateway windows": (
+            f"{gateway['wrong_windows']} of {gateway['windows']} windows had a wrong OEE "
+            f"(up to {_pp(gateway, 'oee')}) while availability was off by up to "
+            f"{_pp(gateway, 'availability')} and performance by up to {_pp(gateway, 'performance')}"
+        ),
+        "compose QoS 0 windows": (
+            f"{qos0['wrong_windows']} of {qos0['windows']} compared windows had a wrong OEE "
+            f"(up to {_pp(qos0, 'oee')}), availability was off by up to "
+            f"{_pp(qos0, 'availability')}, and {qos0['parts_pipeline']} parts were counted "
+            f"against {qos0['parts_truth']} in the event log"
+        ),
+    }
+
+
+def _pp(run: dict, metric: str) -> str:
+    return f"{run['error_pp'][metric]['max_pp']:.1f} pp"
+
+
 
 
 def alerts(results: dict) -> dict[str, str]:

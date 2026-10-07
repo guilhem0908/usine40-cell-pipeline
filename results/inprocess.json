@@ -129,6 +129,9 @@
       "wire_duplicates": 0,
       "windows": 240,
       "wrong_windows": 31,
+      "wrong_windows_right_counts": 0,
+      "wrong_part_count_windows": 31,
+      "worst_availability_error_pp": 78.66666666666666,
       "worst_oee_error_pp": 130.66666666666666,
       "parts_truth": 3204,
       "parts_pipeline": 3204
@@ -149,6 +152,9 @@
       "wire_duplicates": 0,
       "windows": 240,
       "wrong_windows": 30,
+      "wrong_windows_right_counts": 0,
+      "wrong_part_count_windows": 30,
+      "worst_availability_error_pp": 78.66666666666666,
       "worst_oee_error_pp": 100.0,
       "parts_truth": 3204,
       "parts_pipeline": 3204
@@ -169,6 +175,9 @@
       "wire_duplicates": 0,
       "windows": 240,
       "wrong_windows": 0,
+      "wrong_windows_right_counts": 0,
+      "wrong_part_count_windows": 0,
+      "worst_availability_error_pp": 0.0,
       "worst_oee_error_pp": 0.0,
       "parts_truth": 3204,
       "parts_pipeline": 3204
@@ -189,6 +198,9 @@
       "wire_duplicates": 0,
       "windows": 240,
       "wrong_windows": 45,
+      "wrong_windows_right_counts": 0,
+      "wrong_part_count_windows": 45,
+      "worst_availability_error_pp": 85.00000000000001,
       "worst_oee_error_pp": 193.33333333333337,
       "parts_truth": 3204,
       "parts_pipeline": 3204
@@ -209,6 +221,9 @@
       "wire_duplicates": 0,
       "windows": 240,
       "wrong_windows": 0,
+      "wrong_windows_right_counts": 0,
+      "wrong_part_count_windows": 0,
+      "worst_availability_error_pp": 0.0,
       "worst_oee_error_pp": 0.0,
       "parts_truth": 3204,
       "parts_pipeline": 3204
@@ -229,6 +244,9 @@
       "wire_duplicates": 40,
       "windows": 240,
       "wrong_windows": 0,
+      "wrong_windows_right_counts": 0,
+      "wrong_part_count_windows": 0,
+      "worst_availability_error_pp": 0.0,
       "worst_oee_error_pp": 0.0,
       "parts_truth": 3204,
       "parts_pipeline": 3204

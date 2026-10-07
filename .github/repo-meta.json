@@ -1,0 +1,18 @@
+{
+  "description": "Simulated production cell to OEE dashboard in one docker compose up: OPC UA, MQTT, PostgreSQL, Grafana, with fault injection and measured latency and OEE error.",
+  "topics": [
+    "industry-4-0",
+    "smart-factory",
+    "oee",
+    "opc-ua",
+    "mqtt",
+    "grafana",
+    "postgresql",
+    "docker-compose",
+    "asyncua",
+    "industrial-iot",
+    "python",
+    "fault-injection"
+  ],
+  "homepage": ""
+}
